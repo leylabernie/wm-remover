@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: watermark-remover-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./watermark_remover.db
+      - UPLOAD_DIR=/app/uploads
+      - PROCESSED_DIR=/app/processed
+      - MODEL_CACHE_DIR=/app/models
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_processed:/app/processed
+      - backend_models:/app/models
+      - backend_db:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: watermark-remover-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_uploads:
+    driver: local
+  backend_processed:
+    driver: local
+  backend_models:
+    driver: local
+  backend_db:
+    driver: local
+
+networks:
+  default:
+    name: watermark-remover-network
